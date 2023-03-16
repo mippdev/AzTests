@@ -41,7 +41,7 @@ foreach ($subscription in $subscriptions) {
         $result = [PSCustomObject]@{
             SubscriptionName   = $subscription.Name
             DefenderPlanName   = $plan.Name
-            DefenderPlanStatus = if ($plan.FreeTier) { "Off" } else { "On" }
+            DefenderPlanStatus = if ($plan.PricingTier -eq "Free") { "Off" } else { "On" }
             DefenderPlanPricing = $cost
             ResourceQuantity   = $plan.ResourceCount
             MonitoringCoverage = $plan.MonitoringCoverage
@@ -52,6 +52,8 @@ foreach ($subscription in $subscriptions) {
         $results += $result
     }
 }
+
+# Export the results to a CSV file
 
 # Export the results to a CSV file
 $results | Export-Csv -Path "AzureDefenderPlans.csv" -NoTypeInformation
