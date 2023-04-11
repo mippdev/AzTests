@@ -1,0 +1,38 @@
+{
+    "mode": "All",
+    "displayName": "Prevent or audit RBAC assignments to Azure AD guest users",
+    "description": "This policy either denies or audits RBAC assignments for Azure AD guest users, based on the selected effect.",
+    "parameters": {
+      "effect": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Effect",
+          "description": "Choose the desired effect for the policy: either 'deny' or 'audit'."
+        },
+        "allowedValues": [
+          "deny",
+          "audit"
+        ],
+        "defaultValue": "audit"
+      }
+    },
+    "policyRule": {
+      "if": {
+        "allOf": [
+          {
+            "field": "type",
+            "equals": "Microsoft.Authorization/roleAssignments"
+          },
+          {
+            "field": "Microsoft.Authorization/roleAssignments/principalType",
+            "equals": "Guest"
+          }
+        ]
+      },
+      "then": {
+        "effect": "[parameters('effect')]"
+      }
+    }
+  }
+  
+  
