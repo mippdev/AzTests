@@ -1,0 +1,64 @@
+{
+    "mode": "All",
+    "policyRule": {
+      "if": {
+        "field": "type",
+        "equals": "Microsoft.Resources/subscriptions"
+      },
+      "then": {
+        "effect": "auditIfNotExists",
+        "details": {
+          "type": "Microsoft.Insights/diagnosticSettings",
+          "existenceCondition": {
+            "allOf": [
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/name",
+                "equals": "[parameters('diagnosticSettingProfileName')]"
+              },
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/eventHubAuthorizationRuleId",
+                "equals": "[parameters('eventHubAuthorizationRuleId')]"
+              },
+              {
+                "allOf": [
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                    "in": ["Administrative"]
+                  },
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                    "in": ["Security"]
+                  },
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                    "in": ["Alert"]
+                  },
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*].category",
+                    "in": ["Policy"]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    },
+    "parameters": {
+      "diagnosticSettingProfileName": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Diagnostic Setting Profile Name",
+          "description": "Enter the diagnostic setting profile name to search for in the subscription."
+        }
+      },
+      "eventHubAuthorizationRuleId": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Event Hub Authorization Rule ID",
+          "description": "Enter the specific Event Hub Authorization Rule ID to check for in the diagnostic setting."
+        }
+      }
+    }
+  }
+  
