@@ -19,40 +19,36 @@
                 "equals": "[parameters('diagnosticSettingName')]"
               },
               {
-                "any": {
-                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-                  "equals": {
-                    "category": "Administrative",
-                    "enabled": true
+                "anyOf": [
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                    "equals": {
+                      "category": "Administrative",
+                      "enabled": true
+                    }
+                  },
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                    "equals": {
+                      "category": "Security",
+                      "enabled": true
+                    }
+                  },
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                    "equals": {
+                      "category": "Alert",
+                      "enabled": true
+                    }
+                  },
+                  {
+                    "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                    "equals": {
+                      "category": "Policy",
+                      "enabled": true
+                    }
                   }
-                }
-              },
-              {
-                "any": {
-                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-                  "equals": {
-                    "category": "Security",
-                    "enabled": true
-                  }
-                }
-              },
-              {
-                "any": {
-                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-                  "equals": {
-                    "category": "Alert",
-                    "enabled": true
-                  }
-                }
-              },
-              {
-                "any": {
-                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
-                  "equals": {
-                    "category": "Policy",
-                    "enabled": true
-                  }
-                }
+                ]
               },
               {
                 "field": "Microsoft.Insights/diagnosticSettings/eventHubAuthorizationRuleId",
