@@ -1,0 +1,83 @@
+{
+    "mode": "All",
+    "policyRule": {
+      "if": {
+        "not": {
+          "field": "type",
+          "equals": "Microsoft.Insights/diagnosticSettings"
+        }
+      },
+      "then": {
+        "effect": "auditIfNotExists",
+        "details": {
+          "type": "Microsoft.Insights/diagnosticSettings",
+          "existenceScope": "subscription",
+          "existenceCondition": {
+            "allOf": [
+              {
+                "field": "name",
+                "equals": "[parameters('diagnosticSettingName')]"
+              },
+              {
+                "any": {
+                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                  "equals": {
+                    "category": "Administrative",
+                    "enabled": true
+                  }
+                }
+              },
+              {
+                "any": {
+                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                  "equals": {
+                    "category": "Security",
+                    "enabled": true
+                  }
+                }
+              },
+              {
+                "any": {
+                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                  "equals": {
+                    "category": "Alert",
+                    "enabled": true
+                  }
+                }
+              },
+              {
+                "any": {
+                  "field": "Microsoft.Insights/diagnosticSettings/logs[*]",
+                  "equals": {
+                    "category": "Policy",
+                    "enabled": true
+                  }
+                }
+              },
+              {
+                "field": "Microsoft.Insights/diagnosticSettings/eventHubAuthorizationRuleId",
+                "equals": "[parameters('eventHubAuthorizationRuleId')]"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "parameters": {
+      "diagnosticSettingName": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Diagnostic Setting Name",
+          "description": "The name of the diagnostic setting to check."
+        }
+      },
+      "eventHubAuthorizationRuleId": {
+        "type": "String",
+        "metadata": {
+          "displayName": "Event Hub Authorization Rule Id",
+          "description": "The Id of the Event Hub authorization rule to check."
+        }
+      }
+    }
+  }
+  
