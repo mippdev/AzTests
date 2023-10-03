@@ -16,8 +16,8 @@ function Get-DiagnosticSettingsStatus {
                 ResourceTypeKind                  = $resourceTypeKind
                 DiagnosticSettingName             = $null
                 HasDiagnosticSettings             = $false
-                MissingCategories                 = @()
-                EnabledCategories                 = @()
+                MissingCategories                 = ""
+                EnabledCategories                 = ""
                 IsEvalDataExist                   = $false
                 EnabledCategoryCount              = 0
                 EnabledRequiredCategoryCount      = 0
@@ -29,15 +29,15 @@ function Get-DiagnosticSettingsStatus {
             continue
         }
 
-        $diagnosticSettings = $resource.diag | ConvertFrom-Json
+        $diagnosticSettings = $resource.diag # Assuming diag is already an array/object, remove ConvertFrom-Json if needed
         if ($null -eq $diagnosticSettings) {
             $statusObject = New-Object PSObject -Property @{
                 ResourceId                        = $resource.id
                 ResourceTypeKind                  = $resourceTypeKind
                 DiagnosticSettingName             = $null
                 HasDiagnosticSettings             = $false
-                MissingCategories                 = @()
-                EnabledCategories                 = @()
+                MissingCategories                 = ""
+                EnabledCategories                 = ""
                 IsEvalDataExist                   = $true
                 EnabledCategoryCount              = 0
                 EnabledRequiredCategoryCount      = 0
@@ -50,27 +50,22 @@ function Get-DiagnosticSettingsStatus {
         }
 
         foreach ($diag in $diagnosticSettings) {
-            $requiredCategories = $evalData.LogCategories.Keys | Where-Object { $evalData.LogCategories[$_] }
-            $enabledRequiredCategories = @()
-            foreach ($category in $requiredCategories) {
-                if ($diag.LogCategories -contains $category) {
-                    $enabledRequiredCategories += $category
-                }
-            }
+            $requiredCategories = $evalData.LogCategories.Keys | Where-Object { $evalData.LogCategories[$_] -eq $true }
+            $enabledCategories = $diag.properties.logs | Where-Object { $_.enabled -eq $true } | ForEach-Object { $_.category }
 
             $statusObject = New-Object PSObject -Property @{
                 ResourceId                        = $resource.id
                 ResourceTypeKind                  = $resourceTypeKind
-                DiagnosticSettingName             = $diag.Name
+                DiagnosticSettingName             = $diag.name
                 HasDiagnosticSettings             = $true
-                MissingCategories                 = $requiredCategories | Where-Object { $_ -notin $diag.LogCategories }
-                EnabledCategories                 = $diag.LogCategories
+                MissingCategories                 = ($requiredCategories | Where-Object { $_ -notin $enabledCategories }) -join ','
+                EnabledCategories                 = $enabledCategories -join ','
                 IsEvalDataExist                   = $true
-                EnabledCategoryCount              = $diag.LogCategories.Count
-                EnabledRequiredCategoryCount      = $enabledRequiredCategories.Count
+                EnabledCategoryCount              = $enabledCategories.Count
+                EnabledRequiredCategoryCount      = ($requiredCategories | Where-Object { $_ -in $enabledCategories }).Count
                 RequiredCategoryCount             = $requiredCategories.Count
-                HasAllRequiredCategoriesEnabled   = ($enabledRequiredCategories.Count -eq $requiredCategories.Count)
-                HasOnlyRequiredCategoriesEnabled  = ($diag.LogCategories.Count -eq $requiredCategories.Count) -and ($enabledRequiredCategories.Count -eq $requiredCategories.Count)
+                HasAllRequiredCategoriesEnabled   = ($requiredCategories.Count -eq ($requiredCategories | Where-Object { $_ -in $enabledCategories }).Count)
+                HasOnlyRequiredCategoriesEnabled  = ($enabledCategories.Count -eq $requiredCategories.Count) -and ($requiredCategories.Count -eq ($requiredCategories | Where-Object { $_ -in $enabledCategories }).Count)
             }
             $output += $statusObject
         }
