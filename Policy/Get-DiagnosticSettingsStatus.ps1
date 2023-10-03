@@ -10,62 +10,77 @@ function Get-DiagnosticSettingsStatus {
         $resourceTypeKind = "$($resource.res.Type)|$($resource.res.Kind)"
         $evalData = $resourceEval[$resourceTypeKind]
 
+        $hasLogCategorySettings = if($null -ne $evalData) { $evalData.HasLogCategorySettings } else { $false }
+        $supportsDiagnosticSettings = if($null -ne $evalData) { $evalData.SupportsDiagnosticSettings } else { $false }
+
         if ($null -eq $evalData) {
-            $statusObject = New-Object PSObject -Property @{
+            $statusObject = [PSCustomObject]@{
                 ResourceId                        = $resource.id
                 ResourceTypeKind                  = $resourceTypeKind
                 DiagnosticSettingName             = $null
                 HasDiagnosticSettings             = $false
-                MissingCategories                 = ""
-                EnabledCategories                 = ""
+                MissingCategories                 = @()
+                EnabledCategories                 = @()
                 IsEvalDataExist                   = $false
                 EnabledCategoryCount              = 0
                 EnabledRequiredCategoryCount      = 0
                 RequiredCategoryCount             = 0
                 HasAllRequiredCategoriesEnabled   = $false
                 HasOnlyRequiredCategoriesEnabled  = $false
+                ResHasLogCategorySettings         = $hasLogCategorySettings
+                ResSupportsDiagnosticSettings     = $supportsDiagnosticSettings
             }
             $output += $statusObject
             continue
         }
 
-        $diagnosticSettings = $resource.diag # Assuming diag is already an array/object, remove ConvertFrom-Json if needed
+        $diagnosticSettings = $resource.diag | ConvertFrom-Json
         if ($null -eq $diagnosticSettings) {
-            $statusObject = New-Object PSObject -Property @{
+            $requiredCategories = ($evalData.LogCategories.Keys | Where-Object { $evalData.LogCategories[$_] })
+            $statusObject = [PSCustomObject]@{
                 ResourceId                        = $resource.id
                 ResourceTypeKind                  = $resourceTypeKind
                 DiagnosticSettingName             = $null
                 HasDiagnosticSettings             = $false
-                MissingCategories                 = ""
-                EnabledCategories                 = ""
+                MissingCategories                 = @()
+                EnabledCategories                 = @()
                 IsEvalDataExist                   = $true
                 EnabledCategoryCount              = 0
                 EnabledRequiredCategoryCount      = 0
-                RequiredCategoryCount             = $evalData.LogCategories.Keys.Count
+                RequiredCategoryCount             = $requiredCategories.Count
                 HasAllRequiredCategoriesEnabled   = $false
                 HasOnlyRequiredCategoriesEnabled  = $false
+                ResHasLogCategorySettings         = $hasLogCategorySettings
+                ResSupportsDiagnosticSettings     = $supportsDiagnosticSettings
             }
             $output += $statusObject
             continue
         }
 
         foreach ($diag in $diagnosticSettings) {
-            $requiredCategories = $evalData.LogCategories.Keys | Where-Object { $evalData.LogCategories[$_] -eq $true }
-            $enabledCategories = $diag.properties.logs | Where-Object { $_.enabled -eq $true } | ForEach-Object { $_.category }
+            $requiredCategories = ($evalData.LogCategories.Keys | Where-Object { $evalData.LogCategories[$_] })
+            $enabledRequiredCategories = @()
+            foreach ($category in $requiredCategories) {
+                if ($diag.properties.logs.category -contains $category) {
+                    $enabledRequiredCategories += $category
+                }
+            }
 
-            $statusObject = New-Object PSObject -Property @{
+            $statusObject = [PSCustomObject]@{
                 ResourceId                        = $resource.id
                 ResourceTypeKind                  = $resourceTypeKind
                 DiagnosticSettingName             = $diag.name
                 HasDiagnosticSettings             = $true
-                MissingCategories                 = ($requiredCategories | Where-Object { $_ -notin $enabledCategories }) -join ','
-                EnabledCategories                 = $enabledCategories -join ','
+                MissingCategories                 = ($requiredCategories -join ', ')
+                EnabledCategories                 = ($diag.properties.logs.category -join ', ')
                 IsEvalDataExist                   = $true
-                EnabledCategoryCount              = $enabledCategories.Count
-                EnabledRequiredCategoryCount      = ($requiredCategories | Where-Object { $_ -in $enabledCategories }).Count
+                EnabledCategoryCount              = $diag.properties.logs.category.Count
+                EnabledRequiredCategoryCount      = $enabledRequiredCategories.Count
                 RequiredCategoryCount             = $requiredCategories.Count
-                HasAllRequiredCategoriesEnabled   = ($requiredCategories.Count -eq ($requiredCategories | Where-Object { $_ -in $enabledCategories }).Count)
-                HasOnlyRequiredCategoriesEnabled  = ($enabledCategories.Count -eq $requiredCategories.Count) -and ($requiredCategories.Count -eq ($requiredCategories | Where-Object { $_ -in $enabledCategories }).Count)
+                HasAllRequiredCategoriesEnabled   = ($enabledRequiredCategories.Count -eq $requiredCategories.Count)
+                HasOnlyRequiredCategoriesEnabled  = ($diag.properties.logs.category.Count -eq $requiredCategories.Count) -and ($enabledRequiredCategories.Count -eq $requiredCategories.Count)
+                ResHasLogCategorySettings         = $hasLogCategorySettings
+                ResSupportsDiagnosticSettings     = $supportsDiagnosticSettings
             }
             $output += $statusObject
         }
@@ -73,9 +88,3 @@ function Get-DiagnosticSettingsStatus {
 
     return $output
 }
-
-# Example of usage
-$diagnosticSettingsStatus = Get-DiagnosticSettingsStatus -resourceEval $resourceEval -resourceData $resourceData
-
-# Exporting to CSV
-$diagnosticSettingsStatus | Export-Csv -Path 'DiagnosticSettingsStatus.csv' -NoTypeInformation
