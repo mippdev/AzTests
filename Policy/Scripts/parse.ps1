@@ -22,6 +22,7 @@ foreach ($subscription in $subscriptions) {
         $resourceType = "$($resourceIdParts[6])/$($resourceIdParts[7])"
 
         # Add the parsed data to the exemption object
+        $exemption = New-Object PSObject  
         $exemption | Add-Member -NotePropertyName "SubscriptionName" -NotePropertyValue $subscriptionName
         $exemption | Add-Member -NotePropertyName "ResourceGroupName" -NotePropertyValue $resourceGroupName
         $exemption | Add-Member -NotePropertyName "ResourceType" -NotePropertyValue $resourceType
